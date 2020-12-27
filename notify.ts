@@ -37,6 +37,7 @@ type OPT = {
     _output: string[]
     _start: number
     _end?: number
+    _exit?: boolean
 }
 // TODO: hash tag support
 
@@ -67,16 +68,28 @@ const OPT = {
     _start: Date.now(),
 } as OPT
 
-const listener = async (): Promise<string> => {
+const _listener = async (): Promise<string> => {
     const buf = new Uint8Array(1024)
     const _n = <number>await Deno.stdin.read(buf)
     const output = new TextDecoder().decode(buf.subarray(0, _n))
     return output.trim()
 }
 
-const checker = async () => {
+const _interruptHandle = async () => {
+    for await (const _ of Deno.signal(Deno.Signal.SIGINT)) {
+        if (!OPT._exit) {
+            OPT._exit = true
+            await send(Infinity)
+            await end(true)
+            Deno.exit(0)
+        }
+    }
+}
+
+const _checker = async () => {
     while (true) {
-        if (typeof OPT._end == 'number') {
+        if (typeof OPT._end == 'number' && !OPT._exit) {
+            OPT._exit = true
             await send(Infinity)
             await end()
             Deno.exit(0)
@@ -149,13 +162,16 @@ const init = async (): Promise<number> => {
     return res.result?.message_id || -1
 }
 
-const end = async (): Promise<void> => {
+const end = async (interrupted?: boolean): Promise<void> => {
     // console.log(OPT)
+    const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
     const dt = ((OPT._end || Date.now()) - OPT._start) / 1000
-    const res = await _send(
+    await _send(
         '*\\[ NOTIFY \\]* session `' +
             OPT.session +
-            '` _ended_\\.\nExecution time: `' +
+            '` ' +
+            eType +
+            '\\.\nExecution time: `' +
             dt.toFixed(1) +
             '`sec',
         OPT.initMsgId,
@@ -174,10 +190,11 @@ const run = async (): Promise<void> => {
     OPT.token = token
     OPT.to = to
     OPT.initMsgId = await init()
-    checker()
+    _checker()
+    _interruptHandle()
 
     while (typeof OPT._end == 'undefined') {
-        const output = await listener()
+        const output = await _listener()
         if (output == '') {
             OPT._end = Date.now()
         }
