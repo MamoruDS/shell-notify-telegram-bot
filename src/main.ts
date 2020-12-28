@@ -5,17 +5,18 @@ import fetch from 'node-fetch'
 const VERSION = '0.1.2'
 
 type OPT = {
-    token?: string
-    to?: string
     initMsgId?: number
-    notifyFreq: number
     interval: number
+    notifyFreq: number
     session: string
+    silent: boolean
     tags: string[]
-    _output: string[]
-    _start: number
+    to?: string
+    token?: string
     _end?: number
     _exit?: boolean
+    _start: number
+    _output: string[]
 }
 
 type TGResponse = {
@@ -38,12 +39,13 @@ type TGFrom = {}
 type TGChat = {}
 
 const OPT = {
-    notifyFreq: 10,
     interval: 1000,
+    notifyFreq: 10,
     session: randStr(4).toLocaleUpperCase(),
+    silent: false,
     tags: [],
-    _output: [],
     _start: Date.now(),
+    _output: [],
 } as OPT
 
 const _interruptHandle = () => {
@@ -117,6 +119,7 @@ const init = async (): Promise<number> => {
         '*\\[ NOTIFY \\]* session `' +
             OPT.session +
             '` _started_\\.' +
+            (OPT.silent ? ' 🔇' : '') +
             (tags.length
                 ? '\n' +
                   tags
@@ -149,6 +152,7 @@ const end = async (interrupted?: boolean): Promise<void> => {
 
 const send = async (count: number = OPT.notifyFreq): Promise<void> => {
     const _pend: string[] = OPT._output.splice(0, count)
+    if (OPT.silent) return
     await _send('```\n' + safeMDv2(_pend.join('\n')) + '\n```', OPT.initMsgId)
 }
 
@@ -226,13 +230,21 @@ const run = async (): Promise<void> => {
             optional: true,
             description: '',
         },
+        silent: {
+            type: 'boolean',
+            optional: true,
+            description: '',
+        },
     })
-    OPT.session = args.session
-    OPT.token = args.token
-    OPT.to = args.chat
-    OPT.tags = args.tags
-    OPT.notifyFreq = args.frequency
+
     OPT.interval = Math.round(args.interval * 1000)
+    OPT.notifyFreq = args.frequency
+    OPT.session = args.session
+    OPT.silent = args.silent
+    OPT.tags = args.tags
+    OPT.to = args.chat
+    OPT.token = args.token
+
     OPT.initMsgId = await init()
     _checker()
     _interruptHandle()
