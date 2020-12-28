@@ -1,24 +1,122 @@
-const parser = (args: string[]): { [key: string]: string[] } => {
-    let key: string = ''
-    const _args = {} as { [key: string]: string[] }
-    for (let arg of args) {
-        const re = new RegExp(/[-]{1,2}([^\s|=]+)=?([^$]{0,})/)
-        const match = re.exec(arg)
-        if (match == null) {
-            if (!key) {
-                console.error(`unknown argument ${arg}`)
-                Deno.exit(1)
+type TypeConv<T> = T extends 'string'
+    ? string
+    : T extends 'boolean'
+    ? boolean
+    : T extends 'number'
+    ? number
+    : T extends 'array'
+    ? string[]
+    : never
+
+type Option<T extends 'string' | 'boolean' | 'number' | 'array'> = {
+    type: T
+    alias?: string
+    default?: TypeConv<T>
+    optional?: boolean
+    description?: string
+    fn?: (value: TypeConv<T>) => Promise<void>
+}
+
+type Options = {
+    [key: string]:
+        | Option<'string'>
+        | Option<'boolean'>
+        | Option<'number'>
+        | Option<'array'>
+}
+
+type OptionsVal<T extends Options> = {
+    [key in keyof T]: TypeConv<T[key]['type']>
+}
+
+const parser = <T extends Options>(
+    args: string[],
+    options: T
+): OptionsVal<T> => {
+    let _k: string | undefined
+    const _args = {} as { [key: string]: any }
+    const _opts = {} as { [key: string]: string }
+    for (const key of Object.keys(options)) {
+        _opts[key] = key
+        _opts[options[key].alias] = key
+    }
+    delete _opts['undefined']
+
+    const _add = (key: string, val?: string) => {
+        if (!key) {
+            // key undefined
+            throw new Error(`No such subcommand '${val}'`)
+        }
+        const _key = _opts[key]
+        const type = options[_key]?.type
+        if (!type) {
+            // key not defined
+            throw new Error(`Unknown option '${key}'`)
+        }
+        if (!val) {
+            // init
+            if (type != 'boolean') {
+                _k = _key
+                _args[_key] = null
             } else {
-                _args[key].push(arg)
+                _args[_key] = true
             }
         } else {
-            key = match[1]
-            arg = match[2]
-            _args[key] = []
-            if (arg) _args[key].push(arg)
+            // add new val
+            if (type == 'string') {
+                _args[_key] = val
+            }
+            if (type == 'number') {
+                _args[_key] = parseInt(val)
+            }
+            if (type == 'boolean') {
+                _args[_key] = true
+            }
+            if (type == 'array') {
+                if (!_args[_key]) _args[_key] = []
+                _args[_key].push(val)
+            }
         }
     }
-    return _args
+
+    for (let a of args) {
+        const r = new RegExp(/([-]{1,2})([^\s|=]+)=?([^$]{0,})/)
+        const m = r.exec(a)
+        if (m == null) {
+            _add(_k, a)
+        } else {
+            if (m[1].length == 1) {
+                // -
+                _k = undefined
+                const _keys = m[2].split('')
+
+                if (_keys.length > 1) {
+                    for (const _key of _keys) {
+                        _add(_key)
+                    }
+                    _k = undefined
+                } else {
+                    _add(m[2], m[3])
+                }
+            } else {
+                // --
+                _add(m[2], m[3])
+            }
+        }
+    }
+    for (const key of Object.keys(options)) {
+        const opt = options[key] as Option<'string'>
+        if (typeof _args[key] == 'undefined') {
+            if (!opt.optional) {
+                throw new Error(`Missing required argument: ${key}`)
+            }
+            _args[key] = opt.default
+        }
+        if (opt.fn) {
+            opt.fn(_args[key])
+        }
+    }
+    return _args as OptionsVal<T>
 }
 
 export { parser }
