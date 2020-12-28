@@ -1,37 +1,11 @@
 #!/usr/bin/env deno --allow-env --allow-net
-
-const randStr = (length: number): string => {
-    return new Array(length)
-        .fill(0)
-        .map((_) => {
-            return Math.round(Math.random() * 15).toString(16)
-        })
-        .join('')
-}
-
-const safeMDv2 = (input: string): string => {
-    // https://core.telegram.org/bots/api#markdownv2-style
-    return input.replace(
-        /(?<!\\)[\_\*\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!]/gm,
-        (match, ...M) => {
-            return '\\' + match
-        }
-    )
-}
-
-const wait = async (interval: number): Promise<void> => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve()
-        }, interval)
-    })
-}
+import { randStr, safeMDv2, wait } from './utils.ts'
 
 type OPT = {
     token?: string
     to?: string
     initMsgId?: number
-    notifyStep: number
+    notifyFreq: number
     interval: number
     session: string
     _output: string[]
@@ -60,8 +34,24 @@ type TGResult = {
 type TGFrom = {}
 type TGChat = {}
 
+type Argument =
+    | 'h'
+    | 'help'
+    | 'V'
+    | 'version'
+    | 's'
+    | 'session'
+    | 'i'
+    | 'interval'
+    | 'o'
+    | 'output'
+    | 't'
+    | 'tags'
+    | 'f'
+    | 'frequency'
+
 const OPT = {
-    notifyStep: 10,
+    notifyFreq: 10,
     interval: 1000,
     session: randStr(4).toLocaleUpperCase(),
     _output: [],
@@ -94,7 +84,7 @@ const _checker = async () => {
             await end()
             Deno.exit(0)
         } else {
-            if (OPT._output.length >= OPT.notifyStep) {
+            if (OPT._output.length >= OPT.notifyFreq) {
                 send()
             }
             await wait(OPT.interval)
@@ -179,7 +169,7 @@ const end = async (interrupted?: boolean): Promise<void> => {
     )
 }
 
-const send = async (count: number = OPT.notifyStep): Promise<void> => {
+const send = async (count: number = OPT.notifyFreq): Promise<void> => {
     const _pend: string[] = OPT._output.splice(0, count)
     await _send('```\n' + safeMDv2(_pend.join('\n')) + '\n```', OPT.initMsgId)
 }
