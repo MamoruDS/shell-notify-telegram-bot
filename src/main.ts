@@ -1,5 +1,8 @@
 #!/usr/bin/env deno --allow-env --allow-net
 import { randStr, safeMDv2, wait } from './utils.ts'
+import { parser } from './args.ts'
+
+const VERSION = '0.1.1-beta.0'
 
 type OPT = {
     token?: string
@@ -8,12 +11,12 @@ type OPT = {
     notifyFreq: number
     interval: number
     session: string
+    tags: string[]
     _output: string[]
     _start: number
     _end?: number
     _exit?: boolean
 }
-// TODO: hash tag support
 
 type TGResponse = {
     ok: boolean
@@ -41,7 +44,6 @@ type Argument =
     | 'version'
     | 's'
     | 'session'
-    | 'i'
     | 'interval'
     | 'o'
     | 'output'
@@ -49,11 +51,14 @@ type Argument =
     | 'tags'
     | 'f'
     | 'frequency'
+    | 'chat'
+    | 'token'
 
 const OPT = {
     notifyFreq: 10,
     interval: 1000,
     session: randStr(4).toLocaleUpperCase(),
+    tags: [],
     _output: [],
     _start: Date.now(),
 } as OPT
@@ -133,7 +138,7 @@ const _send = async (
 }
 
 const init = async (): Promise<number> => {
-    const tags: string[] = []
+    const tags: string[] = OPT.tags
     const res = await _send(
         '*\\[ NOTIFY \\]* session `' +
             OPT.session +
@@ -175,10 +180,28 @@ const send = async (count: number = OPT.notifyFreq): Promise<void> => {
 }
 
 const run = async (): Promise<void> => {
+    const args = parser(Deno.args) as {
+        [key in Argument]: string[]
+    }
     const token = Deno.env.get('BOT_NOTIFY')
-    const to = Deno.env.get('BOT_NOTIFY_TO')
-    OPT.token = token
-    OPT.to = to
+    const chat = Deno.env.get('BOT_NOTIFY_TO')
+
+    if (args.version || args.V) {
+        console.log('shell-notify-bot ' + VERSION)
+        Deno.exit(0)
+    }
+    if (args.help || args.h) {
+        // TODO: help
+        Deno.exit(0)
+    }
+
+    OPT.session = args.session?.[0] || args.s?.[0] || OPT.session
+    OPT.token = args.token?.[0] || token
+    OPT.to = args.chat?.[0] || chat
+    OPT.tags = args.tags || args.t || []
+    OPT.notifyFreq =
+        parseInt(args.frequency?.[0]) || parseInt(args.f?.[0]) || OPT.notifyFreq
+    OPT.interval = parseInt(args.interval?.[0]) || OPT.interval
     OPT.initMsgId = await init()
     _checker()
     _interruptHandle()
