@@ -1,8 +1,8 @@
-#!/usr/bin/env deno --allow-env --allow-net
-import { randStr, safeMDv2, wait } from './utils.ts'
-import { parser } from './args.ts'
+import { randStr, safeMDv2, wait } from './utils'
+import { parser } from './args'
+import fetch from 'node-fetch'
 
-const VERSION = '0.1.1'
+const VERSION = '0.1.2'
 
 type OPT = {
     token?: string
@@ -37,23 +37,6 @@ type TGResult = {
 type TGFrom = {}
 type TGChat = {}
 
-type Argument =
-    | 'h'
-    | 'help'
-    | 'V'
-    | 'version'
-    | 's'
-    | 'session'
-    | 'interval'
-    | 'o'
-    | 'output'
-    | 't'
-    | 'tags'
-    | 'f'
-    | 'frequency'
-    | 'chat'
-    | 'token'
-
 const OPT = {
     notifyFreq: 10,
     interval: 1000,
@@ -63,22 +46,15 @@ const OPT = {
     _start: Date.now(),
 } as OPT
 
-const _listener = async (): Promise<string> => {
-    const buf = new Uint8Array(1024)
-    const _n = <number>await Deno.stdin.read(buf)
-    const output = new TextDecoder().decode(buf.subarray(0, _n))
-    return output.trim()
-}
-
-const _interruptHandle = async () => {
-    for await (const _ of Deno.signal(Deno.Signal.SIGINT)) {
+const _interruptHandle = () => {
+    process.on('SIGINT', async () => {
         if (!OPT._exit) {
             OPT._exit = true
             await send(Infinity)
             await end(true)
-            Deno.exit(0)
+            process.exit(0)
         }
-    }
+    })
 }
 
 const _checker = async () => {
@@ -87,7 +63,7 @@ const _checker = async () => {
             OPT._exit = true
             await send(Infinity)
             await end()
-            Deno.exit(0)
+            process.exit(0)
         } else {
             if (OPT._output.length >= OPT.notifyFreq) {
                 send()
@@ -104,10 +80,9 @@ const _send = async (
 ): Promise<TGResponse> => {
     try {
         const _res = await fetch(
-            // `https://`,
             `https://api.telegram.org/bot${OPT.token}/sendMessage`,
             {
-                method: 'GET',
+                method: 'POST',
                 body: JSON.stringify({
                     chat_id: OPT.to,
                     text: text,
@@ -123,7 +98,6 @@ const _send = async (
         const res: TGResponse = await _res.json()
         if (res.ok) {
         } else {
-            console.log(res.description)
             // TODO: handle api error
             if (res.error_code == 401) {
                 // handle Unauthorized
@@ -158,7 +132,6 @@ const init = async (): Promise<number> => {
 }
 
 const end = async (interrupted?: boolean): Promise<void> => {
-    // console.log(OPT)
     const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
     const dt = ((OPT._end || Date.now()) - OPT._start) / 1000
     await _send(
@@ -180,42 +153,100 @@ const send = async (count: number = OPT.notifyFreq): Promise<void> => {
 }
 
 const run = async (): Promise<void> => {
-    const args = parser(Deno.args) as {
-        [key in Argument]: string[]
-    }
-    const token = Deno.env.get('BOT_NOTIFY')
-    const chat = Deno.env.get('BOT_NOTIFY_TO')
-
-    if (args.version || args.V) {
-        console.log('shell-notify-bot ' + VERSION)
-        Deno.exit(0)
-    }
-    if (args.help || args.h) {
-        // TODO: help
-        Deno.exit(0)
-    }
-
-    OPT.session = args.session?.[0] || args.s?.[0] || OPT.session
-    OPT.token = args.token?.[0] || token
-    OPT.to = args.chat?.[0] || chat
-    OPT.tags = args.tags || args.t || []
-    OPT.notifyFreq =
-        parseInt(args.frequency?.[0]) || parseInt(args.f?.[0]) || OPT.notifyFreq
-    OPT.interval = parseInt(args.interval?.[0]) || OPT.interval
+    const args = parser(process.argv.slice(2), {
+        version: {
+            type: 'boolean',
+            alias: 'V',
+            default: false,
+            optional: true,
+            description: 'Show version',
+            fn: async (val) => {
+                if (val) {
+                    console.log('shell-notify-bot ' + VERSION)
+                    process.exit(0)
+                }
+            },
+        },
+        help: {
+            type: 'boolean',
+            alias: 'h',
+            default: false,
+            optional: true,
+            description: 'Show version',
+            fn: async (val) => {
+                if (val) {
+                    // TODO:
+                    process.exit(0)
+                }
+            },
+        },
+        token: {
+            type: 'string',
+            default: process.env['BOT_NOTIFY_TOKEN'],
+            optional: true,
+            description: 'Specify token of notify-bot',
+        },
+        chat: {
+            type: 'string',
+            default: process.env['BOT_NOTIFY_CHAT'],
+            optional: true,
+            description: 'Specify chat_id where notification will sending to',
+        },
+        tags: {
+            alias: 't',
+            type: 'array',
+            default: [],
+            optional: true,
+            description: 'Hashtag of session',
+        },
+        session: {
+            alias: 's',
+            type: 'string',
+            default: randStr(4).toLocaleUpperCase(),
+            optional: true,
+            description: 'Sepcify session name',
+        },
+        interval: {
+            alias: 'i',
+            type: 'number',
+            default: 5,
+            optional: true,
+            description: '',
+        },
+        frequency: {
+            alias: 'f',
+            type: 'number',
+            default: 10,
+            optional: true,
+            description: '',
+        },
+        output: {
+            alias: 'o',
+            type: 'string',
+            optional: true,
+            description: '',
+        },
+    })
+    OPT.session = args.session
+    OPT.token = args.token
+    OPT.to = args.chat
+    OPT.tags = args.tags
+    OPT.notifyFreq = args.frequency
+    OPT.interval = Math.round(args.interval * 1000)
     OPT.initMsgId = await init()
     _checker()
     _interruptHandle()
 
-    while (typeof OPT._end == 'undefined') {
-        const output = await _listener()
-        if (output == '') {
-            OPT._end = Date.now()
-        }
+    process.stdin.on('data', (buf) => {
+        const output = buf.toString().trim()
         OPT._output.push(
-            output.replaceAll(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
+            output.replace(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
         )
         console.log(output)
-    }
+    })
+    process.stdin.on('end', () => {
+        OPT._end = Date.now()
+    })
 }
 
 export {}
