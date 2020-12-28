@@ -2,7 +2,7 @@
 import { randStr, safeMDv2, wait } from './utils.ts'
 import { parser } from './args.ts'
 
-const VERSION = '0.1.1-beta.0'
+const VERSION = '0.1.1'
 
 type OPT = {
     token?: string
