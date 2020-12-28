@@ -89,7 +89,6 @@ const parser = <T extends Options>(
                 // -
                 _k = undefined
                 const _keys = m[2].split('')
-
                 if (_keys.length > 1) {
                     for (const _key of _keys) {
                         _add(_key)

@@ -37,23 +37,6 @@ type TGResult = {
 type TGFrom = {}
 type TGChat = {}
 
-type Argument =
-    | 'h'
-    | 'help'
-    | 'V'
-    | 'version'
-    | 's'
-    | 'session'
-    | 'interval'
-    | 'o'
-    | 'output'
-    | 't'
-    | 'tags'
-    | 'f'
-    | 'frequency'
-    | 'chat'
-    | 'token'
-
 const OPT = {
     notifyFreq: 10,
     interval: 1000,
