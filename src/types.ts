@@ -14,6 +14,7 @@ export type OPT = {
     _start: number
     _output: string[]
     _version: string
+    _cur: string
 }
 
 export type TGResponse = {

@@ -8,6 +8,7 @@ import { OPT } from './types'
 const OPT = {
     _start: Date.now(),
     _output: [],
+    _cur: '',
     _version: '0.1.4',
 } as OPT
 
@@ -77,17 +78,21 @@ const end = async (interrupted?: boolean): Promise<void> => {
 
 const send = async (count: number = OPT.notifyFreq): Promise<void> => {
     if (OPT._output.length) {
-        const text: string = OPT._output.splice(0, count).join('\n')
+        const _pd: string[] = OPT._output.splice(0, count)
+        if (_pd.length < OPT.notifyFreq && count != Infinity && OPT._cur) {
+            _pd.push(OPT._cur)
+        }
+        const msg: string = _pd.join('\n')
         if (OPT.silent) return
         if (OPT.sendFile) {
             const filename = `${OPT.session}_${Date.now()
                 .toString(16)
                 .toLocaleUpperCase()}.txt`
-            fs.writeFileSync(filename, text)
+            fs.writeFileSync(filename, msg)
             await sendDocument(filename, OPT.initMsgId)
             fs.unlinkSync(filename)
         } else {
-            await sendMessage('```\n' + safeMDv2(text) + '\n```', OPT.initMsgId)
+            await sendMessage('```\n' + safeMDv2(msg) + '\n```', OPT.initMsgId)
         }
     }
 }
@@ -205,7 +210,7 @@ const run = async (): Promise<void> => {
             ok: false,
             description: 'No chat ID specified',
         })
-    } 
+    }
 
     OPT.initMsgId = await init()
     _checker()
@@ -214,13 +219,22 @@ const run = async (): Promise<void> => {
         console.log(OPT)
     }
     process.stdin.on('data', (buf) => {
-        const output = buf.toString().trim()
-        OPT._output.push(
-            output.replace(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
-        )
-        console.log(output)
+        const output = buf.toString()
+        process.stdout.write(output)
+
+        const _lines = output.split('\n')
+        OPT._cur += _lines.shift()
+        OPT._cur = OPT._cur.replace(/[^\r]*\r/g, '')
+        // if \n exist in `output`
+        for (const line of _lines) {
+            console.log('in loop')
+            OPT._output.push(OPT._cur)
+            OPT._cur = line
+            OPT._cur = OPT._cur.replace(/[^\r]*\r/g, '')
+        }
     })
     process.stdin.on('end', () => {
+        OPT._output.push(OPT._cur)
         OPT._end = Date.now()
     })
 }
