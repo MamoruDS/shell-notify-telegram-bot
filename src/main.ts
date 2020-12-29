@@ -76,17 +76,19 @@ const end = async (interrupted?: boolean): Promise<void> => {
 }
 
 const send = async (count: number = OPT.notifyFreq): Promise<void> => {
-    const text: string = OPT._output.splice(0, count).join('\n')
-    if (OPT.silent) return
-    if (OPT.sendFile) {
-        const filename = `${OPT.session}_${Date.now()
-            .toString(16)
-            .toLocaleUpperCase()}.txt`
-        fs.writeFileSync(filename, text)
-        await sendDocument(filename, OPT.initMsgId)
-        fs.unlinkSync(filename)
-    } else {
-        await sendMessage('```\n' + safeMDv2(text) + '\n```', OPT.initMsgId)
+    if (OPT._output.length) {
+        const text: string = OPT._output.splice(0, count).join('\n')
+        if (OPT.silent) return
+        if (OPT.sendFile) {
+            const filename = `${OPT.session}_${Date.now()
+                .toString(16)
+                .toLocaleUpperCase()}.txt`
+            fs.writeFileSync(filename, text)
+            await sendDocument(filename, OPT.initMsgId)
+            fs.unlinkSync(filename)
+        } else {
+            await sendMessage('```\n' + safeMDv2(text) + '\n```', OPT.initMsgId)
+        }
     }
 }
 
