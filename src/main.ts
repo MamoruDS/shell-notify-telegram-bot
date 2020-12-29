@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 
-import { randStr, safeMDv2, wait } from './utils'
+import { randStr, safeMDv2, wait, panic } from './utils'
 import { parser } from './args'
 import { sendMessage, sendDocument } from './request'
 import { OPT } from './types'
@@ -189,6 +189,24 @@ const run = async (): Promise<void> => {
     OPT.to = args.chat
     OPT.token = args.token
     //
+    if (!OPT.token) {
+        panic({
+            ok: false,
+            description: 'No bot token specified',
+        })
+    } else if (!OPT.token.match(/[\d]{4,}:/)) {
+        panic({
+            ok: false,
+            description: 'Invalid bot token format',
+        })
+    }
+    if (!OPT.to) {
+        panic({
+            ok: false,
+            description: 'No chat ID specified',
+        })
+    } 
+
     OPT.initMsgId = await init()
     _checker()
     _interruptHandle()
