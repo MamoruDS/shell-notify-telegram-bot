@@ -13,6 +13,7 @@ export type OPT = {
     _exit?: boolean
     _start: number
     _output: string[]
+    _version: string
 }
 
 export type TGResponse = {
