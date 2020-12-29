@@ -77,7 +77,7 @@ const end = async (interrupted?: boolean): Promise<void> => {
 }
 
 const send = async (count: number = OPT.notifyFreq): Promise<void> => {
-    if (OPT._output.length) {
+    if (OPT._output.length && OPT.initMsgId) {
         const _pd: string[] = OPT._output.splice(0, count)
         if (_pd.length < OPT.notifyFreq && count != Infinity && OPT._cur) {
             _pd.push(OPT._cur)
@@ -211,13 +211,6 @@ const run = async (): Promise<void> => {
             description: 'No chat ID specified',
         })
     }
-
-    OPT.initMsgId = await init()
-    _checker()
-    _interruptHandle()
-    if (OPT.debug) {
-        console.log(OPT)
-    }
     process.stdin.on('data', (buf) => {
         const output = buf.toString()
         process.stdout.write(output)
@@ -237,6 +230,12 @@ const run = async (): Promise<void> => {
         OPT._output.push(OPT._cur)
         OPT._end = Date.now()
     })
+    OPT.initMsgId = await init()
+    _checker()
+    _interruptHandle()
+    if (OPT.debug) {
+        console.log(OPT)
+    }
 }
 
 export { OPT }
