@@ -15,6 +15,8 @@ export type OPT = {
     _output: string[]
     _version: string
     _cur: string
+    _updateID?: string
+    _lastUpdateID?: string
 }
 
 export type TGResponse = {

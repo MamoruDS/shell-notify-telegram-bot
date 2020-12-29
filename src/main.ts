@@ -9,6 +9,7 @@ const OPT = {
     _start: Date.now(),
     _output: [],
     _cur: '',
+    _updateID: randStr(4),
     _version: '0.1.4',
 } as OPT
 
@@ -31,9 +32,7 @@ const _checker = async () => {
             await end()
             process.exit(0)
         } else {
-            if (OPT._output.length >= OPT.notifyFreq) {
-                send()
-            }
+            send()
             await wait(OPT.interval)
         }
     }
@@ -77,7 +76,7 @@ const end = async (interrupted?: boolean): Promise<void> => {
 }
 
 const send = async (count: number = OPT.notifyFreq): Promise<void> => {
-    if (OPT._output.length && OPT.initMsgId) {
+    if ((OPT._output.length || OPT._cur) && OPT.initMsgId) {
         const _pd: string[] = OPT._output.splice(0, count)
         if (_pd.length < OPT.notifyFreq && count != Infinity && OPT._cur) {
             _pd.push(OPT._cur)
@@ -154,7 +153,7 @@ const run = async (): Promise<void> => {
         interval: {
             alias: 'i',
             type: 'number',
-            default: 5,
+            default: 30,
             optional: true,
             description: '',
         },
@@ -220,10 +219,13 @@ const run = async (): Promise<void> => {
         OPT._cur = OPT._cur.replace(/[^\r]*\r/g, '')
         // if \n exist in `output`
         for (const line of _lines) {
-            console.log('in loop')
             OPT._output.push(OPT._cur)
             OPT._cur = line
             OPT._cur = OPT._cur.replace(/[^\r]*\r/g, '')
+        }
+
+        if (OPT._output.length >= OPT.notifyFreq) {
+            send()
         }
     })
     process.stdin.on('end', () => {
