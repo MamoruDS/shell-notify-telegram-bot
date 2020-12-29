@@ -8,7 +8,7 @@ import { OPT } from './types'
 const OPT = {
     _start: Date.now(),
     _output: [],
-    _version: '0.1.3',
+    _version: '0.1.4',
 } as OPT
 
 const _interruptHandle = () => {

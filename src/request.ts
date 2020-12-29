@@ -4,19 +4,18 @@ import axios from 'axios'
 
 import { OPT } from './main'
 import { TGResponse } from './types'
+import { panic } from './utils'
 
 const _error = (err: any) => {
     const res: TGResponse = err?.response?.data
     if (res) {
-        console.error(res)
-        process.exit(1)
+        panic(res)
     } else {
-        console.error({
+        panic({
             ok: false,
             description: 'other unknown error',
             error: err,
         })
-        process.exit(1)
     }
 }
 
