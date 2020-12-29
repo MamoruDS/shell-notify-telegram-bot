@@ -1,8 +1,22 @@
 # Changelog
 
+## 0.1.3
+
+### Added
+
+-   support of argument `--send-file`
+    sending all message in text file `$session_$ts.txt`
+-   support of argument `--debug`
+-   support of argument `--silent`
+    only sending _started_ and _ended_ message to chat
+
+### Modified
+
+-   using `axios` instead `fetch`
+
 ## 0.1.2
 
-## Modified
+### Modified
 
 -   reworte from `deno` to `node`
 -   reworte argument parser
