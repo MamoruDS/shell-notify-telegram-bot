@@ -2,7 +2,7 @@ import * as fs from 'fs'
 
 import { randStr, safeMDv2, wait, panic } from './utils'
 import { parser } from './args'
-import { sendMessage, sendDocument } from './request'
+import { sendMessage, sendDocument, editMessageText } from './request'
 import { OPT } from './types'
 
 const OPT = {
@@ -11,6 +11,7 @@ const OPT = {
     _cur: '',
     _updateID: randStr(4),
     _version: '0.1.4',
+    _lastMsg: {},
 } as OPT
 
 const _interruptHandle = () => {
@@ -76,22 +77,48 @@ const end = async (interrupted?: boolean): Promise<void> => {
 }
 
 const send = async (count: number = OPT.notifyFreq): Promise<void> => {
+    // TODO: needs improve
     if ((OPT._output.length || OPT._cur) && OPT.initMsgId) {
-        const _pd: string[] = OPT._output.splice(0, count)
-        if (_pd.length < OPT.notifyFreq && count != Infinity && OPT._cur) {
+        if (
+            OPT._lastUpdateID == OPT._updateID &&
+            OPT._lastMsg?.message_id &&
+            !OPT.sendFile
+        ) {
+            // update message
+            const _pd: string[] = [...OPT._lastMsg.output]
             _pd.push(OPT._cur)
-        }
-        const msg: string = _pd.join('\n')
-        if (OPT.silent) return
-        if (OPT.sendFile) {
-            const filename = `${OPT.session}_${Date.now()
-                .toString(16)
-                .toLocaleUpperCase()}.txt`
-            fs.writeFileSync(filename, msg)
-            await sendDocument(filename, OPT.initMsgId)
-            fs.unlinkSync(filename)
+            const msg: string = _pd.join('\n')
+            const res = await editMessageText(
+                '```\n' + safeMDv2(msg) + '\n```',
+                OPT._lastMsg.message_id
+            )
+            OPT._lastMsg.message_id = res.result.message_id
+            return
         } else {
-            await sendMessage('```\n' + safeMDv2(msg) + '\n```', OPT.initMsgId)
+            // send new message
+            const _output: string[] = OPT._output.splice(0, count)
+            const _pd: string[] = [..._output]
+            if (_pd.length < OPT.notifyFreq && count != Infinity && OPT._cur) {
+                _pd.push(OPT._cur)
+            }
+            const msg: string = _pd.join('\n')
+            OPT._lastUpdateID = OPT._updateID
+            if (OPT.silent) return
+            if (OPT.sendFile) {
+                const filename = `${OPT.session}_${Date.now()
+                    .toString(16)
+                    .toLocaleUpperCase()}.txt`
+                fs.writeFileSync(filename, msg)
+                await sendDocument(filename, OPT.initMsgId)
+                fs.unlinkSync(filename)
+            } else {
+                const res = await sendMessage(
+                    '```\n' + safeMDv2(msg) + '\n```',
+                    OPT.initMsgId
+                )
+                OPT._lastMsg.message_id = res.result.message_id
+                OPT._lastMsg.output = _output
+            }
         }
     }
 }
@@ -221,6 +248,7 @@ const run = async (): Promise<void> => {
         for (const line of _lines) {
             OPT._output.push(OPT._cur)
             OPT._cur = line
+            OPT._updateID = randStr(4)
             OPT._cur = OPT._cur.replace(/[^\r]*\r/g, '')
         }
 

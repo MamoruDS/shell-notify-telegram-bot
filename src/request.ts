@@ -46,6 +46,31 @@ const sendMessage = async (
     }
 }
 
+const editMessageText = async (
+    text: string,
+    messageID: number
+): Promise<TGResponse> => {
+    try {
+        const res = await axios.post(
+            `https://api.telegram.org/bot${OPT.token}/editMessageText`,
+            {
+                chat_id: OPT.to,
+                message_id: messageID,
+                text: text,
+                parse_mode: 'MarkdownV2',
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        )
+        return res.data as TGResponse
+    } catch (e) {
+        _error(e)
+    }
+}
+
 const sendDocument = async (
     path: string,
     reply?: number,
@@ -74,4 +99,4 @@ const sendDocument = async (
     }
 }
 
-export { sendDocument, sendMessage }
+export { sendDocument, sendMessage, editMessageText }
