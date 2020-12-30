@@ -62,15 +62,26 @@ const init = async (): Promise<number> => {
 
 const end = async (interrupted?: boolean): Promise<void> => {
     const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
-    const dt = ((OPT._end || Date.now()) - OPT._start) / 1000
+    const dt = (OPT._end || Date.now()) - OPT._start
+    let execTime: [string, string]
+    if (dt < 500) {
+        execTime = [dt.toString(), 'ms']
+    } else if (dt < 300000) {
+        execTime = [(dt / 1000).toFixed(2), 'secs']
+    } else if (dt < 7200000) {
+        execTime = [(dt / 1000 / 60).toFixed(1), 'mins']
+    } else {
+        execTime = [(dt / 1000 / 60 / 24).toFixed(1), 'hours']
+    }
     await sendMessage(
         '*\\[ NOTIFY \\]* session `' +
             OPT.session +
             '` ' +
             eType +
             '\\.\nExecution time: `' +
-            dt.toFixed(1) +
-            '`sec',
+            safeMDv2(execTime[0]) +
+            '`' +
+            execTime[1],
         OPT.initMsgId,
         false
     )
