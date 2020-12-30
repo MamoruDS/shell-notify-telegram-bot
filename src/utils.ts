@@ -25,4 +25,9 @@ const wait = async (interval: number): Promise<void> => {
     })
 }
 
-export { randStr, safeMDv2, wait }
+const panic = (message: object): never => {
+    console.error(message)
+    process.exit(1)
+}
+
+export { randStr, safeMDv2, wait, panic }

@@ -1,14 +1,17 @@
 import * as fs from 'fs'
 
-import { randStr, safeMDv2, wait } from './utils'
+import { randStr, safeMDv2, wait, panic } from './utils'
 import { parser } from './args'
-import { sendMessage, sendDocument } from './request'
+import { sendMessage, sendDocument, editMessageText } from './request'
 import { OPT } from './types'
 
 const OPT = {
     _start: Date.now(),
     _output: [],
-    _version: '0.1.3',
+    _cur: '',
+    _updateID: randStr(4),
+    _version: '0.1.4',
+    _lastMsg: {},
 } as OPT
 
 const _interruptHandle = () => {
@@ -30,9 +33,7 @@ const _checker = async () => {
             await end()
             process.exit(0)
         } else {
-            if (OPT._output.length >= OPT.notifyFreq) {
-                send()
-            }
+            send()
             await wait(OPT.interval)
         }
     }
@@ -61,32 +62,75 @@ const init = async (): Promise<number> => {
 
 const end = async (interrupted?: boolean): Promise<void> => {
     const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
-    const dt = ((OPT._end || Date.now()) - OPT._start) / 1000
+    const dt = (OPT._end || Date.now()) - OPT._start
+    let execTime: [string, string]
+    if (dt < 500) {
+        execTime = [dt.toString(), 'ms']
+    } else if (dt < 300000) {
+        execTime = [(dt / 1000).toFixed(2), 'secs']
+    } else if (dt < 7200000) {
+        execTime = [(dt / 1000 / 60).toFixed(1), 'mins']
+    } else {
+        execTime = [(dt / 1000 / 60 / 24).toFixed(1), 'hours']
+    }
     await sendMessage(
         '*\\[ NOTIFY \\]* session `' +
             OPT.session +
             '` ' +
             eType +
             '\\.\nExecution time: `' +
-            dt.toFixed(1) +
-            '`sec',
+            safeMDv2(execTime[0]) +
+            '`' +
+            execTime[1],
         OPT.initMsgId,
         false
     )
 }
 
 const send = async (count: number = OPT.notifyFreq): Promise<void> => {
-    const text: string = OPT._output.splice(0, count).join('\n')
-    if (OPT.silent) return
-    if (OPT.sendFile) {
-        const filename = `${OPT.session}_${Date.now()
-            .toString(16)
-            .toLocaleUpperCase()}.txt`
-        fs.writeFileSync(filename, text)
-        await sendDocument(filename, OPT.initMsgId)
-        fs.unlinkSync(filename)
-    } else {
-        await sendMessage('```\n' + safeMDv2(text) + '\n```', OPT.initMsgId)
+    // TODO: needs improve
+    if ((OPT._output.length || OPT._cur) && OPT.initMsgId) {
+        if (
+            OPT._lastUpdateID == OPT._updateID &&
+            OPT._lastMsg?.message_id &&
+            !OPT.sendFile
+        ) {
+            // update message
+            const _pd: string[] = [...OPT._lastMsg.output]
+            _pd.push(OPT._cur)
+            const msg: string = _pd.join('\n')
+            const res = await editMessageText(
+                '```\n' + safeMDv2(msg) + '\n```',
+                OPT._lastMsg.message_id
+            )
+            OPT._lastMsg.message_id = res.result.message_id
+            return
+        } else {
+            // send new message
+            const _output: string[] = OPT._output.splice(0, count)
+            const _pd: string[] = [..._output]
+            if (_pd.length < OPT.notifyFreq && count != Infinity && OPT._cur) {
+                _pd.push(OPT._cur)
+            }
+            const msg: string = _pd.join('\n')
+            OPT._lastUpdateID = OPT._updateID
+            if (OPT.silent) return
+            if (OPT.sendFile) {
+                const filename = `${OPT.session}_${Date.now()
+                    .toString(16)
+                    .toLocaleUpperCase()}.txt`
+                fs.writeFileSync(filename, msg)
+                await sendDocument(filename, OPT.initMsgId)
+                fs.unlinkSync(filename)
+            } else {
+                const res = await sendMessage(
+                    '```\n' + safeMDv2(msg) + '\n```',
+                    OPT.initMsgId
+                )
+                OPT._lastMsg.message_id = res.result.message_id
+                OPT._lastMsg.output = _output
+            }
+        }
     }
 }
 
@@ -147,7 +191,7 @@ const run = async (): Promise<void> => {
         interval: {
             alias: 'i',
             type: 'number',
-            default: 5,
+            default: 30,
             optional: true,
             description: '',
         },
@@ -187,22 +231,52 @@ const run = async (): Promise<void> => {
     OPT.to = args.chat
     OPT.token = args.token
     //
+    if (!OPT.token) {
+        panic({
+            ok: false,
+            description: 'No bot token specified',
+        })
+    } else if (!OPT.token.match(/[\d]{4,}:/)) {
+        panic({
+            ok: false,
+            description: 'Invalid bot token format',
+        })
+    }
+    if (!OPT.to) {
+        panic({
+            ok: false,
+            description: 'No chat ID specified',
+        })
+    }
+    process.stdin.on('data', (buf) => {
+        const output = buf.toString()
+        process.stdout.write(output)
+
+        const _lines = output.split('\n')
+        OPT._cur += _lines.shift()
+        OPT._cur = OPT._cur.replace(/[^\r]*\r/g, '')
+        // if \n exist in `output`
+        for (const line of _lines) {
+            OPT._output.push(OPT._cur)
+            OPT._cur = line
+            OPT._updateID = randStr(4)
+            OPT._cur = OPT._cur.replace(/[^\r]*\r/g, '')
+        }
+
+        if (OPT._output.length >= OPT.notifyFreq) {
+            send()
+        }
+    })
+    process.stdin.on('end', () => {
+        OPT._output.push(OPT._cur)
+        OPT._end = Date.now()
+    })
     OPT.initMsgId = await init()
     _checker()
     _interruptHandle()
     if (OPT.debug) {
         console.log(OPT)
     }
-    process.stdin.on('data', (buf) => {
-        const output = buf.toString().trim()
-        OPT._output.push(
-            output.replace(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
-        )
-        console.log(output)
-    })
-    process.stdin.on('end', () => {
-        OPT._end = Date.now()
-    })
 }
 
 export { OPT }

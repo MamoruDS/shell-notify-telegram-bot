@@ -4,19 +4,18 @@ import axios from 'axios'
 
 import { OPT } from './main'
 import { TGResponse } from './types'
+import { panic } from './utils'
 
 const _error = (err: any) => {
     const res: TGResponse = err?.response?.data
     if (res) {
-        console.error(res)
-        process.exit(1)
+        panic(res)
     } else {
-        console.error({
+        panic({
             ok: false,
             description: 'other unknown error',
             error: err,
         })
-        process.exit(1)
     }
 }
 
@@ -34,6 +33,31 @@ const sendMessage = async (
                 parse_mode: 'MarkdownV2',
                 reply_to_message_id: reply,
                 disable_notification: silent,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        )
+        return res.data as TGResponse
+    } catch (e) {
+        _error(e)
+    }
+}
+
+const editMessageText = async (
+    text: string,
+    messageID: number
+): Promise<TGResponse> => {
+    try {
+        const res = await axios.post(
+            `https://api.telegram.org/bot${OPT.token}/editMessageText`,
+            {
+                chat_id: OPT.to,
+                message_id: messageID,
+                text: text,
+                parse_mode: 'MarkdownV2',
             },
             {
                 headers: {
@@ -75,4 +99,4 @@ const sendDocument = async (
     }
 }
 
-export { sendDocument, sendMessage }
+export { sendDocument, sendMessage, editMessageText }

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.1.4
+
+### Added
+
+-   `\r` and `\n` now handled properly
+-   notification message updating
+    <p align="center">
+    <img width="550px" src="https://github.com/MamoruDS/shell-notify-telegram-bot/raw/ts-dev/screenshots/preview_20BU0959.gif">
+    </p>
+
+
+### Improved
+
+-   real execution time
+-   validation of bot token and chat id
+-   preventing panic on empty input
+
+## Modified
+
+-   argument `--interval`/`-i` now indicating the interval of pushing notification regardless notify frequency
+-   default value of argument `--interval` has been set to 30(seconds)
+
 ## 0.1.3
 
 ### Added

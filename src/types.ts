@@ -14,6 +14,13 @@ export type OPT = {
     _start: number
     _output: string[]
     _version: string
+    _cur: string
+    _updateID?: string
+    _lastUpdateID?: string
+    _lastMsg?: {
+        output: string[]
+        message_id: number
+    }
 }
 
 export type TGResponse = {
