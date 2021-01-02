@@ -22,7 +22,8 @@ const _error = (err: any) => {
 const sendMessage = async (
     text: string,
     reply?: number,
-    silent: boolean = true
+    silent: boolean = true,
+    errHijack: (e: any) => TGResponse = () => undefined
 ): Promise<TGResponse> => {
     try {
         const res = await axios.post(
@@ -42,13 +43,16 @@ const sendMessage = async (
         )
         return res.data as TGResponse
     } catch (e) {
-        _error(e)
+        const res = errHijack(e)
+        if (!res) _error(e)
+        else return res as TGResponse
     }
 }
 
 const editMessageText = async (
     text: string,
-    messageID: number
+    messageID: number,
+    errHijack: (e: any) => TGResponse = () => undefined
 ): Promise<TGResponse> => {
     try {
         const res = await axios.post(
@@ -67,14 +71,17 @@ const editMessageText = async (
         )
         return res.data as TGResponse
     } catch (e) {
-        _error(e)
+        const res = errHijack(e)
+        if (!res) _error(e)
+        else return res as TGResponse
     }
 }
 
 const sendDocument = async (
     path: string,
     reply?: number,
-    silent: boolean = true
+    silent: boolean = true,
+    errHijack: (e: any) => TGResponse = () => undefined
 ): Promise<TGResponse> => {
     try {
         const form = new FormData()
@@ -95,7 +102,9 @@ const sendDocument = async (
         )
         return res.data as TGResponse
     } catch (e) {
-        _error(e)
+        const res = errHijack(e)
+        if (!res) _error(e)
+        else return res as TGResponse
     }
 }
 
