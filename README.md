@@ -10,19 +10,18 @@ python train.py |& notify
 
 ### arguments
 
-|                    | description                                        | default                                       |
-| ------------------ | -------------------------------------------------- | --------------------------------------------- |
-| `--version`/`-V`   | display version                                    |                                               |
-| `--help`/`-h`      | 🚧 not available yet                               |                                               |
-| `--token`          | token of your bot (Telegram)                       | using environment variable `BOT_NOTIFY_TOKEN` |
-| `--token`          | id of target chat (Telegram)                       | using environment variable `BOT_NOTIFY_CHAT`  |
-| `--tags`/`-t`      | hashtag append to notification                     | null                                          |
-| `--session`/`-s`   | session name of notification                       | random 4 bits length `hex`                    |
-| `--interval`/`-i`  | interval of pushing outputs regardless `frequency` | `30` (in seconds)                             |
-| `--frequency`/`-f` | frequency of pushing outputs                       | `10`                                          |
-| `--silent`         | bot will only notify you at start and end          | false                                         |
-| `--send-file`      | send output as txt documents instead of text       | false                                         |
-| `--debug`          |                                                    | false                                         |
+|                   | description                                        | default                                       |
+| ----------------- | -------------------------------------------------- | --------------------------------------------- |
+| `--version`/`-V`  | display version                                    |                                               |
+| `--help`/`-h`     | 🚧 not available yet                               |                                               |
+| `--token`         | token of your bot (Telegram)                       | using environment variable `BOT_NOTIFY_TOKEN` |
+| `--token`         | id of target chat (Telegram)                       | using environment variable `BOT_NOTIFY_CHAT`  |
+| `--tags`/`-t`     | hashtag append to notification                     | null                                          |
+| `--session`/`-s`  | session name of notification                       | random 4 bits length `hex`                    |
+| `--interval`/`-i` | interval of pushing outputs regardless `frequency` | `30` (in seconds)                             |
+| `--dynamic`       | dynamic update output                              | `true`                                        |
+| `--silent`        | bot will only notify you at start and end          | false                                         |
+| `--send-file`     | send output as txt documents instead of text       | false                                         |
 
 ## Build
 
