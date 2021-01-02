@@ -99,7 +99,11 @@ const parser = <T extends Options>(
                 }
             } else {
                 // --
-                _add(m[2], m[3])
+                if (m[2].substr(0, 3) == 'no-') {
+                    _add(m[2].substr(3), 'false')
+                } else {
+                    _add(m[2], m[3])
+                }
             }
         }
     }
