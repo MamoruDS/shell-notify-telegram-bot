@@ -73,7 +73,8 @@ class Notif {
         this._event.on('sent', () => {
             this._presend()
         })
-        this._event.on('exit', () => {
+        this._event.on('exit', async () => {
+            await this.ready()
             this._pending()
         })
         this._event.on('close', () => {
