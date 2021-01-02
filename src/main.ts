@@ -5,7 +5,7 @@ import { Notif } from './notif'
 
 const OPT = {
     _start: Date.now(),
-    _version: '0.1.4',
+    _version: '0.1.5',
 } as OPT
 
 const _interruptHandle = () => {
@@ -64,14 +64,13 @@ const run = async (): Promise<void> => {
         session: {
             alias: 's',
             type: 'string',
-            default: randStr(4).toLocaleUpperCase(),
             optional: true,
             description: 'Sepcify session name',
         },
         interval: {
             alias: 'i',
             type: 'number',
-            default: 30,
+            default: 10,
             optional: true,
             description: '',
         },
@@ -98,7 +97,7 @@ const run = async (): Promise<void> => {
     OPT.interval = Math.round(args.interval * 1000)
     OPT.dynamic = args.dynamic
     OPT.sendFile = args['send-file']
-    OPT.session = args.session
+    OPT.session = args.session || randStr(4).toLocaleUpperCase()
     OPT.silent = args.silent
     OPT.tags = args.tags
     OPT.to = args.chat
