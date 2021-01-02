@@ -130,7 +130,9 @@ const run = async (): Promise<void> => {
         OPT.tags
     )
     process.stdin.on('data', (buf) => {
-        OPT._notif.append(buf.toString())
+        const o = buf.toString()
+        process.stdout.write(o)
+        OPT._notif.append(o)
     })
     process.stdin.on('end', () => {
         OPT._notif.end()

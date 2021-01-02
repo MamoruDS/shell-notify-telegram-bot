@@ -73,6 +73,16 @@ class Notif {
         this._event.on('sent', () => {
             this._presend()
         })
+        this._event.on('exit', () => {
+            this._pending()
+        })
+        this._event.on('close', () => {
+            if (this._isInterrupted) {
+                process.exit(1)
+            } else {
+                process.exit(0)
+            }
+        })
     }
     end(interrupted?: boolean): void {
         this._isInterrupted = interrupted || this._isInterrupted
@@ -98,7 +108,6 @@ class Notif {
         )
         this._initMsgID = res.result?.message_id || -1
         this._event.emit('ready')
-        return
     }
     private async _end(interrupted?: boolean): Promise<void> {
         const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
@@ -126,7 +135,6 @@ class Notif {
             false
         )
         this._event.emit('close')
-        return
     }
     async ready(): Promise<void> {
         return new Promise((resolve) => {
@@ -158,10 +166,14 @@ class Notif {
     }
     private async _pending(): Promise<void> {
         let msgs: string[]
-        if (this._output[0] && this.dynamic) {
-            msgs = this._output.slice(0, this._uID && -this._uID)
+        if (this.silent) {
+            msgs = []
         } else {
-            msgs = this._output.slice(1, this._uID && -this._uID)
+            if (this._output[0] && this.dynamic) {
+                msgs = this._output.slice(0, this._uID && -this._uID)
+            } else {
+                msgs = this._output.slice(1, this._uID && -this._uID)
+            }
         }
         if (msgs.length) {
             const _start = this._uID ?? 0
@@ -176,7 +188,6 @@ class Notif {
         if (typeof this._initMsgID == 'number' && !this._isRequesting) {
             this._presend()
         }
-        return
     }
     private async _presend(): Promise<void> {
         const _sent = this._sent.filter((s) => {
