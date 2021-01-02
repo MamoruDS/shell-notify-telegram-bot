@@ -122,6 +122,7 @@ class Notif {
         } else {
             execTime = [(dt / 1000 / 60 / 24).toFixed(1), 'hours']
         }
+        this._isRequesting = true
         await sendMessage(
             '*\\[ NOTIFY \\]* session `' +
                 this.session +
@@ -134,6 +135,7 @@ class Notif {
             this._initMsgID,
             false
         )
+        this._isRequesting = false
         this._event.emit('close')
     }
     async ready(): Promise<void> {
@@ -252,7 +254,9 @@ class Notif {
         this._output[0] = (this._output[0] + input).replace(/[^\r]*\r/g, '')
     }
     append(input: string): void {
-        const _inputs = input.split('\n')
+        const _inputs = input
+            .replace(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
+            .split('\n')
         this._append(_inputs.shift())
         for (const i of _inputs) {
             this.newline()
