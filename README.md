@@ -10,22 +10,23 @@ python train.py |& notify
 
 ### arguments
 
-|                   | description                                        | default                                       |
-| ----------------- | -------------------------------------------------- | --------------------------------------------- |
-| `--version`/`-V`  | display version                                    |                                               |
-| `--help`/`-h`     | 🚧 not available yet                               |                                               |
-| `--token`         | token of your bot (Telegram)                       | using environment variable `BOT_NOTIFY_TOKEN` |
-| `--token`         | id of target chat (Telegram)                       | using environment variable `BOT_NOTIFY_CHAT`  |
-| `--tags`/`-t`     | hashtag append to notification                     | null                                          |
-| `--session`/`-s`  | session name of notification                       | random 4 bits length `hex`                    |
-| `--interval`/`-i` | interval of pushing outputs regardless `frequency` | `30` (in seconds)                             |
-| `--dynamic`       | dynamic update output                              | `true`                                        |
-| `--silent`        | bot will only notify you at start and end          | false                                         |
-| `--send-file`     | send output as txt documents instead of text       | false                                         |
+|                   | description                                                                                                                                                                                  | default                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `--version`/`-V`  | display version                                                                                                                                                                              |                                               |
+| `--help`/`-h`     | 🚧 not available yet                                                                                                                                                                         |                                               |
+| `--token`         | token of your bot (Telegram)                                                                                                                                                                 | using environment variable `BOT_NOTIFY_TOKEN` |
+| `--token`         | id of target chat (Telegram)                                                                                                                                                                 | using environment variable `BOT_NOTIFY_CHAT`  |
+| `--tags`/`-t`     | hashtag append to notification                                                                                                                                                               | null                                          |
+| `--session`/`-s`  | session name of notification                                                                                                                                                                 | random 4 bits length `hex`                    |
+| `--interval`/`-i` | interval of pushing outputs regardless `frequency`                                                                                                                                           | `30` (in seconds)                             |
+| `--dynamic`       | dynamic update output                                                                                                                                                                        | `true`                                        |
+| `--silent`        | bot will only notify you at start and end                                                                                                                                                    | false                                         |
+| `--send-file`     | send output as txt documents instead of text                                                                                                                                                 | false                                         |
+| `--length-safe`   | trim outputs which length larger than 4096 (single Telegram text message's capacity), sending last 4096 length part as text, and rest part as file (regardless send-as-file mode is enabled) | true                                          |
 
 ## Build
 
-download from [release page](https://github.com/MamoruDS/shell-notify-telegram-bot/releases)
+download prebuilt binaries from [release page](https://github.com/MamoruDS/shell-notify-telegram-bot/releases)
 
 ```shell
 tar -zvxf notify_0.1.4_linux_x64.tar.gz

@@ -36,7 +36,6 @@ const panic = (message: object): never => {
 const humanizeDuration = (duration: number): [string, string] => {
     let t: [string, string]
     let d = Math.abs(duration)
-    console.log(`duration: ${d}ms`)
     if (d < 500) {
         t = [d.toString(), 'ms']
     } else if (d < 300000) {
