@@ -4,18 +4,45 @@
 
 ## Usage
 
+Set your bot API `token` and `chat_id` in environment variables, or specify in command
+
+-   How to get a `token` or a `bot`: apply from [@BotFather](tg://resolve?domain=BotFather)
+-   How to get `chat_id`:
+    _PS_. `chat_id` of private chat is your `user_id` (not your `username`)
+
+    **by using bot API**
+
+    noticed this method will not working when your bot deployed in kinds of listening mode, like `polling`enabled in `node-telegram-bot-api`
+
+    -   send something in chat
+    -   open `https://api.telegram.org/bot<your token here>/getUpdates` with your browser (replace with your own token)
+    -   your `chat_id` should be `response.result[?].message.chat.id`
+
+    **by using other bot** _may have security issue_
+
 ```shell
-python train.py |& notify
+# set env in your .bash_profile or .zshrc
+BOT_NOTIFY_TOKEN="bot token here"
+BOT_NOTIFY_CHAT="chat id here"
 ```
 
-### arguments
+voilà
+
+```shell
+python train.py |& notify
+
+# or specify(or overwrite env var) in command options
+python train.py |& notify --token "bot token here" --chat "chat id here"
+```
+
+### Arguments
 
 |                   | description                                                                                                                                                                                  | default                                       |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | `--version`/`-V`  | display version                                                                                                                                                                              |                                               |
 | `--help`/`-h`     | 🚧 not available yet                                                                                                                                                                         |                                               |
 | `--token`         | token of your bot (Telegram)                                                                                                                                                                 | using environment variable `BOT_NOTIFY_TOKEN` |
-| `--token`         | id of target chat (Telegram)                                                                                                                                                                 | using environment variable `BOT_NOTIFY_CHAT`  |
+| `--chat`          | id of target chat (Telegram)                                                                                                                                                                 | using environment variable `BOT_NOTIFY_CHAT`  |
 | `--tags`/`-t`     | hashtag append to notification                                                                                                                                                               | null                                          |
 | `--session`/`-s`  | session name of notification                                                                                                                                                                 | random 4 bits length `hex`                    |
 | `--interval`/`-i` | interval of pushing outputs regardless `frequency`                                                                                                                                           | `30` (in seconds)                             |
