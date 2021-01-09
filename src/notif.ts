@@ -1,9 +1,11 @@
 import * as fs from 'fs'
 import { EventEmitter } from 'events'
 
-import { safeMDv2, wait } from './utils'
+import { humanizeDuration, safeMDv2, wait } from './utils'
 import { editMessageText, sendDocument, sendMessage } from './request'
 import { TGResponse } from './types'
+
+const MAX_MSG_LEN = 4096
 
 const errHijack = (err: any): TGResponse => {
     const r: TGResponse = err?.response?.data
@@ -47,6 +49,7 @@ class Notif {
     private _sent: [number, number, number, boolean][] // start, end, msgID, mut
     private _isRequesting: boolean
     private _isInterrupted: boolean
+    private _lengthSafe: boolean
     constructor(
         dynamic: boolean,
         interval: number,
@@ -65,6 +68,7 @@ class Notif {
         this._output = ['']
         this._sent = []
         this._isRequesting = false
+        this._lengthSafe = false
         this._init(tags)
         this._checker()
         this._event.on('update', () => {
@@ -84,6 +88,12 @@ class Notif {
                 process.exit(0)
             }
         })
+    }
+    set lengthSafe(val: boolean) {
+        this._lengthSafe = val
+    }
+    get lengthSafe(): boolean {
+        return this._lengthSafe
     }
     end(interrupted?: boolean): void {
         this._isInterrupted = interrupted || this._isInterrupted
@@ -113,16 +123,7 @@ class Notif {
     private async _end(interrupted?: boolean): Promise<void> {
         const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
         const dt = (this._endAt || Date.now()) - this.startAt
-        let execTime: [string, string]
-        if (dt < 500) {
-            execTime = [dt.toString(), 'ms']
-        } else if (dt < 300000) {
-            execTime = [(dt / 1000).toFixed(2), 'secs']
-        } else if (dt < 7200000) {
-            execTime = [(dt / 1000 / 60).toFixed(1), 'mins']
-        } else {
-            execTime = [(dt / 1000 / 60 / 24).toFixed(1), 'hours']
-        }
+        const execTime: [string, string] = humanizeDuration(dt)
         this._isRequesting = true
         await sendMessage(
             '*\\[ NOTIFY \\]* session `' +
@@ -220,11 +221,25 @@ class Notif {
             }
         }
     }
-    private async _send(msg: string, messageID?: number): Promise<number> {
+    private async _send(
+        msg: string,
+        messageID?: number,
+        sendAsFile?: boolean
+    ): Promise<number> {
+        sendAsFile = sendAsFile ?? this.sendAsFile
         if (this._isRequesting) return
         this._isRequesting = true
         let res: TGResponse
-        if (this.sendAsFile) {
+        if (this._lengthSafe && msg.length > MAX_MSG_LEN && !sendAsFile) {
+            if (!messageID) {
+                const _f = msg.substr(0, msg.length - MAX_MSG_LEN)
+                this._send(_f, undefined, true)
+                await wait(10)
+            }
+            const _s = msg.substr(-MAX_MSG_LEN)
+            return await this._send(_s, messageID)
+        }
+        if (sendAsFile) {
             const filename = `${this.session}_${Date.now()
                 .toString(16)
                 .toLocaleUpperCase()}.txt`

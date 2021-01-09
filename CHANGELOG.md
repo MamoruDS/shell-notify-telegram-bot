@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1
+
+### Added
+
+-   length safe mode: trim outputs which length larger than 4096 (single Telegram text message's capacity), sending last 4096 length part as text, and rest part as file (regardless send-as-file mode is enabled)
+-   new option `--length-safe`/`--no-length-safe` to enable/disable length safe mode (enabled by default)
+
+### Fixed
+
+-   wrong execution time displayed in notifications
+
 ## 0.2.0
 
 ### Improved
@@ -11,7 +22,7 @@
 
 ### Added
 
--   new option `--dynamic` to enable/disable message dynamic updating
+-   new option `--dynamic`/`--no-dynamic` to enable/disable message dynamic updating
 
 ### Improved
 
@@ -63,8 +74,8 @@
 
 ### Modified
 
--   reworte from `deno` to `node`
--   reworte argument parser
+-   rewrote from `deno` to `node`
+-   rewrote argument parser
 
 ## 0.1.1
 
