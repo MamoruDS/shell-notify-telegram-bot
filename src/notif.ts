@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import { EventEmitter } from 'events'
 
-import { safeMDv2, wait } from './utils'
+import { humanizeDuration, safeMDv2, wait } from './utils'
 import { editMessageText, sendDocument, sendMessage } from './request'
 import { TGResponse } from './types'
 
@@ -123,16 +123,7 @@ class Notif {
     private async _end(interrupted?: boolean): Promise<void> {
         const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
         const dt = (this._endAt || Date.now()) - this.startAt
-        let execTime: [string, string]
-        if (dt < 500) {
-            execTime = [dt.toString(), 'ms']
-        } else if (dt < 300000) {
-            execTime = [(dt / 1000).toFixed(2), 'secs']
-        } else if (dt < 7200000) {
-            execTime = [(dt / 1000 / 60).toFixed(1), 'mins']
-        } else {
-            execTime = [(dt / 1000 / 60 / 24).toFixed(1), 'hours']
-        }
+        const execTime: [string, string] = humanizeDuration(dt)
         this._isRequesting = true
         await sendMessage(
             '*\\[ NOTIFY \\]* session `' +
