@@ -5,7 +5,7 @@ import { Notif } from './notif'
 
 const OPT = {
     _start: Date.now(),
-    _version: '0.2.0',
+    _version: '0.2.1',
 } as OPT
 
 const _interruptHandle = () => {

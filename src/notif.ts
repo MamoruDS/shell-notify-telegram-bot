@@ -220,11 +220,16 @@ class Notif {
             }
         }
     }
-    private async _send(msg: string, messageID?: number): Promise<number> {
+    private async _send(
+        msg: string,
+        messageID?: number,
+        sendAsFile?: boolean
+    ): Promise<number> {
         if (this._isRequesting) return
         this._isRequesting = true
         let res: TGResponse
-        if (this.sendAsFile) {
+        sendAsFile = sendAsFile ?? this.sendAsFile
+        if (sendAsFile) {
             const filename = `${this.session}_${Date.now()
                 .toString(16)
                 .toLocaleUpperCase()}.txt`
