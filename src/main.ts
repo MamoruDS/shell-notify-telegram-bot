@@ -72,26 +72,32 @@ const run = async (): Promise<void> => {
             type: 'number',
             default: 10,
             optional: true,
-            description: '',
+            description: 'Interval of pushing notification',
         },
         dynamic: {
             alias: 'd',
             type: 'boolean',
             default: true,
             optional: true,
-            description: '',
+            description: 'Enable/Disable message dynamic updating',
         },
         silent: {
             type: 'boolean',
             default: false,
             optional: true,
-            description: '',
+            description: 'Enable/Disable silent mode',
         },
         'send-file': {
             type: 'boolean',
             default: false,
             optional: true,
             description: '',
+        },
+        'length-safe': {
+            type: 'boolean',
+            default: true,
+            optional: true,
+            description: 'Enable/Disable length safe mode',
         },
     })
     OPT.interval = Math.round(args.interval * 1000)
@@ -129,6 +135,7 @@ const run = async (): Promise<void> => {
         OPT.silent,
         OPT.tags
     )
+    OPT._notif.lengthSafe = args['length-safe']
     process.stdin.on('data', (buf) => {
         const o = buf.toString()
         process.stdout.write(o)
