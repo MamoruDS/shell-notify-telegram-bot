@@ -70,7 +70,7 @@ const parser = <T extends Options>(
                 _args[_key] = parseInt(val)
             }
             if (type == 'boolean') {
-                _args[_key] = true
+                _args[_key] = val == 'true' ? true : false
             }
             if (type == 'array') {
                 if (!_args[_key]) _args[_key] = []
@@ -99,7 +99,11 @@ const parser = <T extends Options>(
                 }
             } else {
                 // --
-                _add(m[2], m[3])
+                if (m[2].substr(0, 3) == 'no-') {
+                    _add(m[2].substr(3), 'false')
+                } else {
+                    _add(m[2], m[3])
+                }
             }
         }
     }

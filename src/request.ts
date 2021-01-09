@@ -4,26 +4,26 @@ import axios from 'axios'
 
 import { OPT } from './main'
 import { TGResponse } from './types'
+import { panic } from './utils'
 
 const _error = (err: any) => {
     const res: TGResponse = err?.response?.data
     if (res) {
-        console.error(res)
-        process.exit(1)
+        panic(res)
     } else {
-        console.error({
+        panic({
             ok: false,
             description: 'other unknown error',
             error: err,
         })
-        process.exit(1)
     }
 }
 
 const sendMessage = async (
     text: string,
     reply?: number,
-    silent: boolean = true
+    silent: boolean = true,
+    errHijack: (e: any) => TGResponse = () => undefined
 ): Promise<TGResponse> => {
     try {
         const res = await axios.post(
@@ -43,14 +43,45 @@ const sendMessage = async (
         )
         return res.data as TGResponse
     } catch (e) {
-        _error(e)
+        const res = errHijack(e)
+        if (!res) _error(e)
+        else return res as TGResponse
+    }
+}
+
+const editMessageText = async (
+    text: string,
+    messageID: number,
+    errHijack: (e: any) => TGResponse = () => undefined
+): Promise<TGResponse> => {
+    try {
+        const res = await axios.post(
+            `https://api.telegram.org/bot${OPT.token}/editMessageText`,
+            {
+                chat_id: OPT.to,
+                message_id: messageID,
+                text: text,
+                parse_mode: 'MarkdownV2',
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        )
+        return res.data as TGResponse
+    } catch (e) {
+        const res = errHijack(e)
+        if (!res) _error(e)
+        else return res as TGResponse
     }
 }
 
 const sendDocument = async (
     path: string,
     reply?: number,
-    silent: boolean = true
+    silent: boolean = true,
+    errHijack: (e: any) => TGResponse = () => undefined
 ): Promise<TGResponse> => {
     try {
         const form = new FormData()
@@ -71,8 +102,10 @@ const sendDocument = async (
         )
         return res.data as TGResponse
     } catch (e) {
-        _error(e)
+        const res = errHijack(e)
+        if (!res) _error(e)
+        else return res as TGResponse
     }
 }
 
-export { sendDocument, sendMessage }
+export { sendDocument, sendMessage, editMessageText }

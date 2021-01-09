@@ -1,93 +1,17 @@
-import * as fs from 'fs'
-
-import { randStr, safeMDv2, wait } from './utils'
+import { randStr, panic } from './utils'
 import { parser } from './args'
-import { sendMessage, sendDocument } from './request'
 import { OPT } from './types'
+import { Notif } from './notif'
 
 const OPT = {
     _start: Date.now(),
-    _output: [],
-    _version: '0.1.3',
+    _version: '0.2.1',
 } as OPT
 
 const _interruptHandle = () => {
     process.on('SIGINT', async () => {
-        if (!OPT._exit) {
-            OPT._exit = true
-            await send(Infinity)
-            await end(true)
-            process.exit(0)
-        }
+        OPT._notif.end(true)
     })
-}
-
-const _checker = async () => {
-    while (true) {
-        if (typeof OPT._end == 'number' && !OPT._exit) {
-            OPT._exit = true
-            await send(Infinity)
-            await end()
-            process.exit(0)
-        } else {
-            if (OPT._output.length >= OPT.notifyFreq) {
-                send()
-            }
-            await wait(OPT.interval)
-        }
-    }
-}
-
-const init = async (): Promise<number> => {
-    const tags: string[] = OPT.tags
-    const res = await sendMessage(
-        '*\\[ NOTIFY \\]* session `' +
-            OPT.session +
-            '` _started_\\.' +
-            (OPT.silent ? ' 🔇' : '') +
-            (tags.length
-                ? '\n' +
-                  tags
-                      .map((t) => {
-                          return `\\#${t}`
-                      })
-                      .join(' ')
-                : ''),
-        undefined,
-        false
-    )
-    return res.result?.message_id || -1
-}
-
-const end = async (interrupted?: boolean): Promise<void> => {
-    const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
-    const dt = ((OPT._end || Date.now()) - OPT._start) / 1000
-    await sendMessage(
-        '*\\[ NOTIFY \\]* session `' +
-            OPT.session +
-            '` ' +
-            eType +
-            '\\.\nExecution time: `' +
-            dt.toFixed(1) +
-            '`sec',
-        OPT.initMsgId,
-        false
-    )
-}
-
-const send = async (count: number = OPT.notifyFreq): Promise<void> => {
-    const text: string = OPT._output.splice(0, count).join('\n')
-    if (OPT.silent) return
-    if (OPT.sendFile) {
-        const filename = `${OPT.session}_${Date.now()
-            .toString(16)
-            .toLocaleUpperCase()}.txt`
-        fs.writeFileSync(filename, text)
-        await sendDocument(filename, OPT.initMsgId)
-        fs.unlinkSync(filename)
-    } else {
-        await sendMessage('```\n' + safeMDv2(text) + '\n```', OPT.initMsgId)
-    }
 }
 
 const run = async (): Promise<void> => {
@@ -140,29 +64,28 @@ const run = async (): Promise<void> => {
         session: {
             alias: 's',
             type: 'string',
-            default: randStr(4).toLocaleUpperCase(),
             optional: true,
             description: 'Sepcify session name',
         },
         interval: {
             alias: 'i',
             type: 'number',
-            default: 5,
-            optional: true,
-            description: '',
-        },
-        frequency: {
-            alias: 'f',
-            type: 'number',
             default: 10,
             optional: true,
-            description: '',
+            description: 'Interval of pushing notification',
+        },
+        dynamic: {
+            alias: 'd',
+            type: 'boolean',
+            default: true,
+            optional: true,
+            description: 'Enable/Disable message dynamic updating',
         },
         silent: {
             type: 'boolean',
             default: false,
             optional: true,
-            description: '',
+            description: 'Enable/Disable silent mode',
         },
         'send-file': {
             type: 'boolean',
@@ -170,38 +93,56 @@ const run = async (): Promise<void> => {
             optional: true,
             description: '',
         },
-        debug: {
+        'length-safe': {
             type: 'boolean',
-            default: false,
+            default: true,
             optional: true,
-            description: '',
+            description: 'Enable/Disable length safe mode',
         },
     })
-    OPT.debug = args.debug
     OPT.interval = Math.round(args.interval * 1000)
-    OPT.notifyFreq = args.frequency
+    OPT.dynamic = args.dynamic
     OPT.sendFile = args['send-file']
-    OPT.session = args.session
+    OPT.session = args.session || randStr(4).toLocaleUpperCase()
     OPT.silent = args.silent
     OPT.tags = args.tags
     OPT.to = args.chat
     OPT.token = args.token
     //
-    OPT.initMsgId = await init()
-    _checker()
-    _interruptHandle()
-    if (OPT.debug) {
-        console.log(OPT)
+    if (!OPT.token) {
+        panic({
+            ok: false,
+            description: 'No bot token specified',
+        })
+    } else if (!OPT.token.match(/[\d]{4,}:/)) {
+        panic({
+            ok: false,
+            description: 'Invalid bot token format',
+        })
     }
+    if (!OPT.to) {
+        panic({
+            ok: false,
+            description: 'No chat ID specified',
+        })
+    }
+    _interruptHandle()
+    OPT._notif = new Notif(
+        OPT.dynamic,
+        OPT.interval,
+        OPT.sendFile,
+        OPT.session,
+        OPT.silent,
+        OPT.tags
+    )
+    OPT._notif.lengthSafe = args['length-safe']
     process.stdin.on('data', (buf) => {
-        const output = buf.toString().trim()
-        OPT._output.push(
-            output.replace(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
-        )
-        console.log(output)
+        const o = buf.toString()
+        process.stdout.write(o)
+        OPT._notif.append(o)
     })
     process.stdin.on('end', () => {
-        OPT._end = Date.now()
+        OPT._notif.end()
     })
 }
 
