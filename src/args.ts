@@ -80,7 +80,7 @@ const parser = <T extends Options>(
     }
 
     for (let a of args) {
-        const r = new RegExp(/([-]{1,2})([^\s|=]+)=?([^$]{0,})/)
+        const r = new RegExp(/^([-]{1,2})([^\s|=]+)=?([^$]{0,})/)
         const m = r.exec(a)
         if (m == null) {
             _add(_k, a)
