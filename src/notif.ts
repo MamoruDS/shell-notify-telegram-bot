@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import { EventEmitter } from 'events'
 
-import { humanizeDuration, safeMDv2, wait } from './utils'
+import { humanizeDuration, safeMDv2, safeTag, wait } from './utils'
 import { editMessageText, sendDocument, sendMessage } from './request'
 import { TGResponse } from './types'
 
@@ -110,7 +110,7 @@ class Notif {
                     ? '\n' +
                       tags
                           .map((t) => {
-                              return `\\#${t}`
+                              return safeTag(t, true)
                           })
                           .join(' ')
                     : ''),

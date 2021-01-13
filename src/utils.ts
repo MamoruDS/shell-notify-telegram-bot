@@ -17,6 +17,17 @@ const safeMDv2 = (input: string): string => {
     )
 }
 
+const safeTag = (input: string, safeMD?: boolean): string => {
+    input =
+        '#' +
+        input
+            .replace(/[\ |\.|\-|\|:|：]/gm, '_')
+            .replace(/[\uff00-\uffff|\u0000-\u00ff]/g, (m: string) => {
+                return /\w/.exec(m) == null ? '' : m
+            })
+    return safeMD ? safeMDv2(input) : input
+}
+
 const wait = async (interval: number): Promise<void> => {
     return new Promise((resolve) => {
         setTimeout(() => {
@@ -52,4 +63,4 @@ const humanizeDuration = (duration: number): [string, string] => {
     return t
 }
 
-export { randStr, safeMDv2, wait, panic, humanizeDuration }
+export { randStr, safeMDv2, safeTag, wait, panic, humanizeDuration }
