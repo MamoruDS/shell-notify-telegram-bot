@@ -1,3 +1,5 @@
+import { panic } from './utils'
+
 type TypeConv<T> = T extends 'string'
     ? string
     : T extends 'boolean'
@@ -45,13 +47,13 @@ const parser = <T extends Options>(
     const _add = (key: string, val?: string) => {
         if (!key) {
             // key undefined
-            throw new Error(`No such subcommand '${val}'`)
+            panic({ description: `No such subcommand '${val}'` })
         }
         const _key = _opts[key]
         const type = options[_key]?.type
         if (!type) {
             // key not defined
-            throw new Error(`Unknown option '${key}'`)
+            panic({ description: `Unknown option '${key}'` })
         }
         if (!val) {
             // init
@@ -111,7 +113,7 @@ const parser = <T extends Options>(
         const opt = options[key] as Option<'string'>
         if (typeof _args[key] == 'undefined') {
             if (!opt.optional) {
-                throw new Error(`Missing required argument: ${key}`)
+                panic({ description: `Missing required argument: ${key}` })
             }
             _args[key] = opt.default
         }

@@ -25,13 +25,17 @@ const wait = async (interval: number): Promise<void> => {
     })
 }
 
-const panic = (message: object): never => {
-    console.error(message)
+const panic = (message: {
+    ok?: boolean
+    description?: string
+    error?: Error
+}): never => {
+    console.error({ ok: false, ...message })
     process.exit(1)
 }
 
 /**
- * @param {numer} duration duration in millisecond
+ * @param {number} duration duration in millisecond
  */
 const humanizeDuration = (duration: number): [string, string] => {
     let t: [string, string]
