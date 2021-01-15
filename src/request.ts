@@ -108,4 +108,29 @@ const sendDocument = async (
     }
 }
 
-export { sendDocument, sendMessage, editMessageText }
+const deleteMessage = async (
+    messageID: number,
+    errHijack: (e: any) => TGResponse = () => undefined
+): Promise<TGResponse> => {
+    try {
+        const res = await axios.post(
+            `https://api.telegram.org/bot${OPT.token}/deleteMessage`,
+            {
+                chat_id: OPT.to,
+                message_id: messageID,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        )
+        return res.data as TGResponse
+    } catch (e) {
+        const res = errHijack(e)
+        if (!res) _error(e)
+        else return res as TGResponse
+    }
+}
+
+export { sendDocument, sendMessage, editMessageText, deleteMessage }
