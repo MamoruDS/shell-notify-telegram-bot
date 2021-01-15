@@ -15,7 +15,7 @@ type Option<T extends 'string' | 'boolean' | 'number' | 'array'> = {
     alias?: string
     default?: TypeConv<T>
     optional?: boolean
-    description?: string
+    about?: string
     fn?: (value: TypeConv<T>) => Promise<void>
 }
 
