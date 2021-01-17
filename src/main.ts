@@ -39,7 +39,7 @@ const run = async (): Promise<void> => {
             alias: 's',
             type: 'string',
             optional: true,
-            about: 'Sepcify session name',
+            about: 'Specify session name',
         },
         interval: {
             alias: 'i',
