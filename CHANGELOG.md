@@ -5,6 +5,10 @@
 ### Added
 
 -   new option `idle-alert` to specify duration of idle which will trigger alert, default value is `Infinity`
+    <p align="center">
+    <img width="550px" src="https://github.com/MamoruDS/shell-notify-telegram-bot/raw/ts-dev/screenshots/preview_210H2037.gif">
+    </p>
+-   `-h`/`--help` finally working due new helper of cli argument parser
 
 ### Fixed
 
