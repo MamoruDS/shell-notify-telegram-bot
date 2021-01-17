@@ -304,7 +304,7 @@ class Notif {
     }
     append(input: string): void {
         this._lastUpdate = Date.now()
-        this._alertMsgID = NaN
+        this._alertMsgID = this._reqIDALock ? NaN : undefined
         const _inputs = input
             .replace(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
             .split('\n')
