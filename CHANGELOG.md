@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.2
+
+### Added
+
+-   new option `idle-alert` to specify duration of idle which will trigger alert, default value is `Infinity`
+    <p align="center">
+    <img width="550px" src="https://github.com/MamoruDS/shell-notify-telegram-bot/raw/ts-dev/screenshots/preview_210H2037.gif">
+    </p>
+-   `-h`/`--help` finally working due new helper of cli argument parser
+
+### Fixed
+
+-   regex issue on cli arguments parser [#3](https://github.com/MamoruDS/shell-notify-telegram-bot/issues/3)
+-   invalid characters in tags are not escaped with a preceding `\` character [#4](https://github.com/MamoruDS/shell-notify-telegram-bot/issues/4)
+
+### Improved
+
+-   display of error messages
+
 ## 0.2.1
 
 ### Added

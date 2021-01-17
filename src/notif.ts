@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import { EventEmitter } from 'events'
 
-import { humanizeDuration, safeMDv2, wait } from './utils'
+import { humanizeDuration, safeMDv2, safeTag, wait } from './utils'
 import { editMessageText, sendDocument, sendMessage } from './request'
 import { TGResponse } from './types'
 
@@ -43,20 +43,25 @@ class Notif {
     readonly startAt: number
     private _endAt: number
     private _initMsgID: number
+    private _alertMsgID: number
     private _event: EventEmitter
     private _output: string[]
     private _uID: number
     private _sent: [number, number, number, boolean][] // start, end, msgID, mut
-    private _isRequesting: boolean
+    private _reqMsgLock: boolean
+    private _reqIDALock: boolean
     private _isInterrupted: boolean
+    private _lastUpdate: number
     private _lengthSafe: boolean
+    private _idleAlert: number
     constructor(
         dynamic: boolean,
         interval: number,
         sendAsFile: boolean,
         session: string,
         silent: boolean,
-        tags: string[]
+        tags: string[],
+        idleAlert: number = Infinity
     ) {
         this.startAt = Date.now()
         this.dynamic = dynamic
@@ -67,8 +72,11 @@ class Notif {
         this._event = new EventEmitter()
         this._output = ['']
         this._sent = []
-        this._isRequesting = false
+        this._reqMsgLock = false
+        this._reqIDALock = false
+        this._lastUpdate = Date.now()
         this._lengthSafe = false
+        this._idleAlert = idleAlert
         this._init(tags)
         this._checker()
         this._event.on('update', () => {
@@ -110,7 +118,7 @@ class Notif {
                     ? '\n' +
                       tags
                           .map((t) => {
-                              return `\\#${t}`
+                              return safeTag(t, true)
                           })
                           .join(' ')
                     : ''),
@@ -124,7 +132,7 @@ class Notif {
         const eType: string = interrupted ? 'has been _interrupted_' : '_ended_'
         const dt = (this._endAt || Date.now()) - this.startAt
         const execTime: [string, string] = humanizeDuration(dt)
-        this._isRequesting = true
+        this._reqMsgLock = true
         await sendMessage(
             '*\\[ NOTIFY \\]* session `' +
                 this.session +
@@ -137,8 +145,30 @@ class Notif {
             this._initMsgID,
             false
         )
-        this._isRequesting = false
+        this._reqMsgLock = false
         this._event.emit('close')
+    }
+    private async _alert(): Promise<void> {
+        if (this._reqIDALock) return
+        this._reqIDALock = true
+        const idleTime: [string, string] = humanizeDuration(
+            Date.now() - this._lastUpdate
+        )
+        let res: TGResponse
+        const msg = `*\\[ NOTIFY \\]*\n💭 Idle since \`${safeMDv2(
+            idleTime[0]
+        )}\`${idleTime[1]} ago`
+        if (!this._alertMsgID) {
+            res = await sendMessage(msg, this._initMsgID, false, errHijack)
+        } else {
+            res = await editMessageText(msg, this._alertMsgID, errHijack)
+        }
+        this._alertMsgID = Number.isNaN(this._alertMsgID)
+            ? undefined
+            : res.ok
+            ? res.result?.message_id
+            : undefined
+        this._reqIDALock = false
     }
     async ready(): Promise<void> {
         return new Promise((resolve) => {
@@ -161,6 +191,9 @@ class Notif {
     private async _checker(): Promise<void> {
         while (true) {
             this._pending()
+            if (Date.now() - this._lastUpdate > this._idleAlert) {
+                this._alert()
+            }
             if (typeof this._endAt == 'number') {
                 break
             } else {
@@ -189,7 +222,7 @@ class Notif {
             }
             this._sent.push([_start, _end, undefined, false])
         }
-        if (typeof this._initMsgID == 'number' && !this._isRequesting) {
+        if (typeof this._initMsgID == 'number' && !this._reqMsgLock) {
             this._presend()
         }
     }
@@ -227,8 +260,8 @@ class Notif {
         sendAsFile?: boolean
     ): Promise<number> {
         sendAsFile = sendAsFile ?? this.sendAsFile
-        if (this._isRequesting) return
-        this._isRequesting = true
+        if (this._reqMsgLock) return
+        this._reqMsgLock = true
         let res: TGResponse
         if (this._lengthSafe && msg.length > MAX_MSG_LEN && !sendAsFile) {
             if (!messageID) {
@@ -260,7 +293,7 @@ class Notif {
                 errHijack
             )
         }
-        this._isRequesting = false
+        this._reqMsgLock = false
         return res.result.message_id || messageID
     }
     private _append(input: string): void {
@@ -270,6 +303,8 @@ class Notif {
         this._output[0] = (this._output[0] + input).replace(/[^\r]*\r/g, '')
     }
     append(input: string): void {
+        this._lastUpdate = Date.now()
+        this._alertMsgID = this._reqIDALock ? NaN : undefined
         const _inputs = input
             .replace(/[\s|\u001b|\u009b]\[[0-9;]{1,}[a-z]?/gim, '')
             .split('\n')

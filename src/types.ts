@@ -2,7 +2,7 @@ import { Notif } from './notif'
 
 export type OPT = {
     dynamic: boolean
-    initMsgId?: number
+    idle: number
     interval: number
     sendFile: boolean
     session: string
