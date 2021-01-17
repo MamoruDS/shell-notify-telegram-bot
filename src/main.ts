@@ -1,11 +1,11 @@
 import { randStr, panic } from './utils'
-import { parser } from './args'
+import { CLIARGS } from './args'
 import { OPT } from './types'
 import { Notif } from './notif'
 
 const OPT = {
     _start: Date.now(),
-    _version: '0.2.1',
+    _version: '0.2.2',
 } as OPT
 
 const _interruptHandle = () => {
@@ -15,92 +15,78 @@ const _interruptHandle = () => {
 }
 
 const run = async (): Promise<void> => {
-    const args = parser(process.argv.slice(2), {
-        version: {
-            type: 'boolean',
-            alias: 'V',
-            default: false,
-            optional: true,
-            description: 'Show version',
-            fn: async (val) => {
-                if (val) {
-                    console.log('shell-notify-bot ' + OPT._version)
-                    process.exit(0)
-                }
-            },
-        },
-        help: {
-            type: 'boolean',
-            alias: 'h',
-            default: false,
-            optional: true,
-            description: 'Show version',
-            fn: async (val) => {
-                if (val) {
-                    // TODO:
-                    process.exit(0)
-                }
-            },
-        },
+    const args = new CLIARGS({
         token: {
             type: 'string',
             default: process.env['BOT_NOTIFY_TOKEN'],
             optional: true,
-            description: 'Specify token of notify-bot',
+            about: 'Specify token of notify-bot',
         },
         chat: {
             type: 'string',
             default: process.env['BOT_NOTIFY_CHAT'],
             optional: true,
-            description: 'Specify chat_id where notification will sending to',
+            about: 'Specify chat_id where notification will sending to',
         },
         tags: {
             alias: 't',
             type: 'array',
             default: [],
             optional: true,
-            description: 'Hashtag of session',
+            about: 'Hashtag of session',
         },
         session: {
             alias: 's',
             type: 'string',
             optional: true,
-            description: 'Sepcify session name',
+            about: 'Sepcify session name',
         },
         interval: {
             alias: 'i',
             type: 'number',
             default: 10,
             optional: true,
-            description: 'Interval of pushing notification',
+            about: 'Interval of pushing notification',
         },
         dynamic: {
             alias: 'd',
             type: 'boolean',
             default: true,
             optional: true,
-            description: 'Enable/Disable message dynamic updating',
+            about: 'Enable/Disable message dynamic updating',
         },
         silent: {
             type: 'boolean',
             default: false,
             optional: true,
-            description: 'Enable/Disable silent mode',
+            about: 'Enable/Disable silent mode',
         },
         'send-file': {
             type: 'boolean',
             default: false,
             optional: true,
-            description: '',
+            about:
+                'Enable/Disable sending output as txt documents instead of text',
         },
         'length-safe': {
             type: 'boolean',
             default: true,
             optional: true,
-            description: 'Enable/Disable length safe mode',
+            about: 'Enable/Disable length safe mode',
+        },
+        'idle-alert': {
+            type: 'number',
+            default: Infinity,
+            optional: true,
+            about: 'Specify idle alert time',
         },
     })
-    OPT.interval = Math.round(args.interval * 1000)
+        .version(OPT._version)
+        .name('shell-notify-bot')
+        .about('Pushing notification to your telegram')
+        .parse(process.argv.slice(2))
+    OPT.idle = args['idle-alert'] * 1000
+    OPT.interval = args.interval * 1000
     OPT.dynamic = args.dynamic
     OPT.sendFile = args['send-file']
     OPT.session = args.session || randStr(4).toLocaleUpperCase()
@@ -133,7 +119,8 @@ const run = async (): Promise<void> => {
         OPT.sendFile,
         OPT.session,
         OPT.silent,
-        OPT.tags
+        OPT.tags,
+        OPT.idle
     )
     OPT._notif.lengthSafe = args['length-safe']
     process.stdin.on('data', (buf) => {
