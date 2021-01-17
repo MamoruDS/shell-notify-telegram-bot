@@ -1,11 +1,11 @@
 import { randStr, panic } from './utils'
-import { parser } from './args'
+import { CLIARGS } from './args'
 import { OPT } from './types'
 import { Notif } from './notif'
 
 const OPT = {
     _start: Date.now(),
-    _version: '0.2.1-beta.5',
+    _version: '0.2.2',
 } as OPT
 
 const _interruptHandle = () => {
@@ -15,33 +15,7 @@ const _interruptHandle = () => {
 }
 
 const run = async (): Promise<void> => {
-    const args = parser(process.argv.slice(2), {
-        version: {
-            type: 'boolean',
-            alias: 'V',
-            default: false,
-            optional: true,
-            about: 'Show version',
-            fn: async (val) => {
-                if (val) {
-                    console.log('shell-notify-bot ' + OPT._version)
-                    process.exit(0)
-                }
-            },
-        },
-        help: {
-            type: 'boolean',
-            alias: 'h',
-            default: false,
-            optional: true,
-            about: 'Show version',
-            fn: async (val) => {
-                if (val) {
-                    // TODO:
-                    process.exit(0)
-                }
-            },
-        },
+    const args = new CLIARGS({
         token: {
             type: 'string',
             default: process.env['BOT_NOTIFY_TOKEN'],
@@ -91,7 +65,8 @@ const run = async (): Promise<void> => {
             type: 'boolean',
             default: false,
             optional: true,
-            about: '',
+            about:
+                'Enable/Disable sending output as txt documents instead of text',
         },
         'length-safe': {
             type: 'boolean',
@@ -106,6 +81,10 @@ const run = async (): Promise<void> => {
             about: 'Specify idle alert time',
         },
     })
+        .version(OPT._version)
+        .name('shell-notify-bot')
+        .about('Pushing notification to your telegram')
+        .parse(process.argv.slice(2))
     OPT.idle = args['idle-alert'] * 1000
     OPT.interval = args.interval * 1000
     OPT.dynamic = args.dynamic
